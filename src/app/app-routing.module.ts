@@ -1,11 +1,11 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
-import { EntryNavComponent } from './entry-nav/entry-nav.component';
+import { BlogComponent } from './blog/blog.component';
 
 
 const routes: Routes = [
-  {path: 'entry-nav', component: EntryNavComponent},
-  {path: '', redirectTo: '/entry-nav', pathMatch: 'full'}
+  {path: 'blog', component: BlogComponent},
+  {path: '', redirectTo: '/blog', pathMatch: 'full'}
 ];
 
 @NgModule({
