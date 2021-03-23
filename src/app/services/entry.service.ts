@@ -13,6 +13,7 @@ export class EntryService {
   constructor() { }
 
   getEntires(): Observable<Entry[]> {
+    
     return of(this.fixture);
   }
 
