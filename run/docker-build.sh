@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 here=$(dirname "$0")
-ng serve --open
+docker build -t my-blog "$here/.."
