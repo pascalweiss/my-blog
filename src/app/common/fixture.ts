@@ -166,6 +166,11 @@ See the sketch for an example:
 The final step in this section is to install the software, and to provide some configuration values.
 
 1. Clone my github project to your local machine
+
+\`\`\`
+git clone https://github.com/pascalweiss/shutter_controller.git
+\`\`\`
+
 2. Open the \`shutter_remote_controller/shutter_remote_controller.ino\` in Arduino IDE.
 3. Open the tab \`config_rf433.h\`
 4. Assign the binary numbers that you sniffed previously to the variables \`RF433_UP\` and \`RF433_DOWN\`.
@@ -212,6 +217,132 @@ So in the end, the motor will be controlable over the network with http.
 - <a href="https://www.amazon.de/-/en/Raspberry-1373331-Model-Motherboard-1GB/dp/B07BFH96M3/">Raspberry Pi mini computer</a> A little computer that is mainly used for DIY projects and education. It is cheap, consumes low amounts of power and provides GPIO for connecting low-level hardware componets. We will use it for sending data to the Arduino, and for hosting Home Assistant.
 - <a href="https://www.amazon.de/AZDelivery-NRF24L01-wireless-modules-Raspberry/dp/B075DBDS3J">NRF24L01 transceiver</a> Communication module for sending/receiving digital data. We will use it for sending the target shutter height from the Pi to Arduino.
 - <a href="https://www.amazon.de/-/en/SanDisk-Ultra-microSDHC-memory-adapter/dp/B073JWXGNT">SD Card</a> Used as disk for the Raspberry Pi.
+
+
+## Some system prerequisites
+- The Raspberry Pi should the raspbian linux distribution. You can install this by flashing the SD-Card with the newest raspbian version. Instructions on how to do this are plentiful available on the internet.
+- Since NRF24 use SPI, we have to enable it on the pi. Therefore we have to start up the Pi and execute \`sudo raspi-config\`
+- There you should go to \`Interface-Options > P4 SPI\` and enable it
+- Also we have to expand the filesystem here \`Advanced Options > A1 Expand Filesystem\`
+- Finally go to \`save\` the Pi should reboot now, automatically.
+
+## Wire up NRF24 Transceiver with Arduino and Pi
+
+First we have to wire everything up. The NRF24 has 8 connectors from which 7 have to be connected to both, the Arduino and the Pi. 
+The exact wiring is visualized in the following schema, as well as in the following table.
+
+
+| NRF24 | Arduino Nano |      Pi 4     |
+|:-----:|:------------:|:-------------:|
+|  VCC  |     3.3V     | 3.3V (e.g. 1) |
+|  GND  |      GND     |  GND (e.g. 6) |
+| CSN   | D10          | GPIO7 (26)    |
+| CE    | D9           | GPIO22 (15)   |
+| MOSI  | D11          | GPIO10 (19)   |
+| SCK   | D13          | GPIO11 (23)   |
+| IRQ   |  -           |     -         |
+| MISO  | D12          | GPIO9 (21)    |
+
+
+<img src="/assets/schema_nrf24.png" alt="drawing" width="900"/>
+
+## Install NRF24 library for Arduino and Raspberry Pi
+
+Now we will install the library on Arduino and Raspberry Pi. 
+There are various libraries available for the NRF24.
+Since they don't seem to be compatible to each other (at least not for communication between Arduino and Raspberry Pi), we have to make sure to use the libraries from the same project.
+I had good results with TMRh20s libraries. For installing, do the following:
+
+- On the Raspberry Pi, install the NRF24 library with python-wrapper. The library has to be compiled on the Pi. So this will take some time. Instructions for the installation can be found here: https://nrf24.github.io/RF24/Python.html
+- In the Arduino IDE, you should find TMRh20s NRF24 library in the 'Library Manager'.
+
+Now you should be able to exchange data from the Pi to the Arduino and the other way around. 
+Various examples can be found here https://nrf24.github.io/RF24/examples.html and are well described on other parts of the page, or on blogs like https://tmrh20.blogspot.com/. 
+
+## Install a flask server for controlling over http
+
+Now that we have set up the NRF24 tranceiver we will now use it for controlling the shutter. 
+After this step we will have a little flask server on the Pi, that is able to receive a desired shutter heigt via http GET requests. 
+The server will then send the desired shutter height via NRF24 to the Arduino.
+Similar to a changed value with the poti, the Arduino will then control the motor over 433 Mhz radio commands and set the desired height.
+We will also ensure that the flask server started at boot up. 
+So every time you power up the Pi, the server will be available. So let's see how to do this step-by-step.
+
+- The project is written in python3. This should already be installed on your Pi. If not, do 
+
+\`\`\`
+sudo apt update
+sudo apt install python3-pip
+\`\`\`
+
+- To check if everything worked, you can do 
+
+\`\`\`
+pip3 --version
+\`\`\`
+
+- As you did before when you set up the Arduino, we will now clone the project again on the Pi.
+
+\`\`\`
+https://github.com/pascalweiss/shutter_controller.git
+\`\`\`
+
+- Now navigate to the project and install the requirements. 
+
+\`\`\`
+cd <path-to-repo>/shutter_controller/shutter_remote_api
+pip3 install -r requirements.txt
+\`\`\`
+
+Now you should already be able to start up the server with \`python3 api.py\` and send control requests. 
+But since we want to start up the server automatically on every boot, we have to set it up as a systemctl service: 
+
+- Create a new service in \`/etc/systemd/system\`. You can do this with your favorite editor, like:
+
+\`\`\`
+sudo vim /etc/systemd/system/shutter_remote_api.service
+\`\`\`
+
+- Then write the following code into the file: 
+
+\`\`\`
+[Unit]
+Description=REST api for sending commands to the shutter controllers via RF24
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/pi/dev/shutter_controller/shutter_remote_api/api.py
+[Install]
+WantedBy=multi-user.target
+\`\`\`
+
+- Now reboot your Pi. When it is up again, the new service should be running. You should be able to print its logs with 
+
+\`\`\`
+sudo journalctl -u shutter_remote_api.service
+\`\`\`
+
+- Here you should get some output like: 
+
+\`\`\`
+Mar 30 19:32:35 raspberrypi systemd[1]: Started REST api for sending commands to the shutter controllers via RF24.
+Mar 30 19:32:40 raspberrypi python3[391]:  * Serving Flask app "api" (lazy loading)
+Mar 30 19:32:40 raspberrypi python3[391]:  * Environment: production
+Mar 30 19:32:40 raspberrypi python3[391]:    WARNING: Do not use the development server in a production environment.
+Mar 30 19:32:40 raspberrypi python3[391]:    Use a production WSGI server instead.
+Mar 30 19:32:40 raspberrypi python3[391]:  * Debug mode: on
+Mar 30 19:32:40 raspberrypi python3[391]:  * Running on http://127.0.0.1:8081/ (Press CTRL+C to quit)
+...
+\`\`\`
+
+- If you get similar logs, you are done now. When the Arduino is set up as previously described, you should now be able to set the shutter hight via http. E.g. you could do a curl command as follows (note that the height is provided as percent in a json):
+\`\`\`
+curl localhost:8081/setShutterLevel --data '{"level": 0.64}' --header "Content-Type:application/json"
+\`\`\`
+
+
+
+
 
 # Integration Level 4: Control the Shutter with a Raspberry Pi and Home Assistant
 
