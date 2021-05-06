@@ -11,6 +11,10 @@ export const fixture: Entry[] = [
 PLEASE TAKE ALL NECESSARY PRECAUTIONS, AND TURN OFF ALL POWER TO A CIRCUIT BEFORE WORKING ON IT. 
 IF YOU DON'T KNOW WHAT YOU ARE DOING, DO YOURSELF A FAVOR AND LET IT BE.**
 
+
+*Repository: <a href=https://github.com/pascalweiss/shutter_controller>github.com/pascalweiss/shutter_controller</a>*
+
+
 # Introduction
 This tutorial will show you how to integrate your roller shutter into your home automation system. 
 With each chapter, we will increase the level of integration. 
@@ -95,7 +99,7 @@ Note: You may want to use jumper cables for the wiring, since you might want to 
 <br>
 
 4. Now that everything is wired up, we install the sniffing software on the Arduino. 
-Copy & paste the following code into the IDE or open the file in this repository: 
+Copy & paste the following code into the IDE or open the file in the repository (see above).
 
 <br>
 
@@ -131,19 +135,19 @@ void loop() {
 <br>
 
 5. Compile and upload the sketch to the Arduino.
-5. In the Arduino IDE, open the Serial Monitor and press the "ON", "OFF" buttons on the remote.
-6. The monitor should now print the received values from the remote. In my local example this looks as follows: 
+6. In the Arduino IDE, open the Serial Monitor and press the "ON", "OFF" buttons on the remote.
+7. The monitor should now print the received values from the remote. In my local example this looks as follows: 
 
 <br>
 
-\`\`\`
+\`\`\`bash
 21:23:06.515 -> Received 2821412352 / 32bit Protocol: 2
 21:23:07.184 -> Received 2687194624 / 32bit Protocol: 2
 \`\`\`
 
 <br>
 
-7. Convert these values into binaries. You can use some online converter for this. The resulting values should be 32 bit numbers. 
+8. Convert these values into binaries. You can use some online converter for this. The resulting values should be 32 bit numbers. 
 E.g. 2821412352 becomes 10101000001010110101011000000000
 
 Voilà! Now we know the commands for remote control of the motor. 
@@ -167,7 +171,7 @@ The final step in this section is to install the software, and to provide some c
 
 1. Clone my github project to your local machine
 
-\`\`\`
+\`\`\`bash
 git clone https://github.com/pascalweiss/shutter_controller.git
 \`\`\`
 
@@ -176,7 +180,7 @@ git clone https://github.com/pascalweiss/shutter_controller.git
 4. Assign the binary numbers that you sniffed previously to the variables \`RF433_UP\` and \`RF433_DOWN\`.
 
 The resulting config_rf433.h should look similar to this: 
-\`\`\`
+\`\`\`C
 ...
 // set this to the corresponding digital pin
 byte PIN_RF433 = 7;
@@ -268,28 +272,28 @@ Similar to a changed value with the poti, the Arduino will then control the moto
 We will also ensure that the flask server started at boot up. 
 So every time you power up the Pi, the server will be available. So let's see how to do this step-by-step.
 
-- The project is written in python3. This should already be installed on your Pi. If not, do 
+The project is written in python3. This should already be installed on your Pi. If not, do 
 
-\`\`\`
+\`\`\`bash
 sudo apt update
 sudo apt install python3-pip
 \`\`\`
 
-- To check if everything worked, you can do 
+To check if everything worked, you can do 
 
-\`\`\`
+\`\`\`bash
 pip3 --version
 \`\`\`
 
-- As you did before when you set up the Arduino, we will now clone the project again on the Pi.
+As you did before when you set up the Arduino, we will now clone the project again on the Pi.
 
-\`\`\`
-https://github.com/pascalweiss/shutter_controller.git
+\`\`\`bash
+git clone https://github.com/pascalweiss/shutter_controller.git
 \`\`\`
 
-- Now navigate to the project and install the requirements. 
+Now navigate to the project and install the requirements. 
 
-\`\`\`
+\`\`\`bash
 cd <path-to-repo>/shutter_controller/shutter_remote_api
 pip3 install -r requirements.txt
 \`\`\`
@@ -297,15 +301,15 @@ pip3 install -r requirements.txt
 Now you should already be able to start up the server with \`python3 api.py\` and send control requests. 
 But since we want to start up the server automatically on every boot, we have to set it up as a systemctl service: 
 
-- Create a new service in \`/etc/systemd/system\`. You can do this with your favorite editor, like:
+Create a new service in \`/etc/systemd/system\`. You can do this with your favorite editor, like:
 
-\`\`\`
+\`\`\`bash
 sudo vim /etc/systemd/system/shutter_remote_api.service
 \`\`\`
 
-- Then write the following code into the file: 
+Then write the following code into the file: 
 
-\`\`\`
+\`\`\`bash
 [Unit]
 Description=REST api for sending commands to the shutter controllers via RF24
 
@@ -316,15 +320,15 @@ ExecStart=/usr/bin/python3 /home/pi/dev/shutter_controller/shutter_remote_api/ap
 WantedBy=multi-user.target
 \`\`\`
 
-- Now reboot your Pi. When it is up again, the new service should be running. You should be able to print its logs with 
+Now reboot your Pi. When it is up again, the new service should be running. You should be able to print its logs with 
 
-\`\`\`
+\`\`\`bash
 sudo journalctl -u shutter_remote_api.service
 \`\`\`
 
-- Here you should get some output like: 
+Here you should get some output like: 
 
-\`\`\`
+\`\`\`bash
 Mar 30 19:32:35 raspberrypi systemd[1]: Started REST api for sending commands to the shutter controllers via RF24.
 Mar 30 19:32:40 raspberrypi python3[391]:  * Serving Flask app "api" (lazy loading)
 Mar 30 19:32:40 raspberrypi python3[391]:  * Environment: production
@@ -335,8 +339,8 @@ Mar 30 19:32:40 raspberrypi python3[391]:  * Running on http://127.0.0.1:8081/ (
 ...
 \`\`\`
 
-- If you get similar logs, you are done now. When the Arduino is set up as previously described, you should now be able to set the shutter hight via http. E.g. you could do a curl command as follows (note that the height is provided as percent in a json):
-\`\`\`
+If you get similar logs, you are done now. When the Arduino is set up as previously described, you should now be able to set the shutter hight via http. E.g. you could do a curl command as follows (note that the height is provided as percent in a json):
+\`\`\`bash
 curl localhost:8081/setShutterLevel --data '{"level": 0.64}' --header "Content-Type:application/json"
 \`\`\`
 
@@ -345,17 +349,154 @@ curl localhost:8081/setShutterLevel --data '{"level": 0.64}' --header "Content-T
 
 
 # Integration Level 4: Control the Shutter with a Raspberry Pi and Home Assistant
+This is the last step to the full integration of the remote controller. 
+Instead of manually sending http requests (like in the previous example) we will now finally install Home Assistant. 
+This will not only provide a nice UI for controlling the shutter, 
+it will also provide the ability to scheduling control commands. 
+Therefore we can use various triggers like sunrise/sunset or weekdays and time. 
+In the following steps we will configure Home Assistant similar to the setup described in the introduction: 
+1. We will open the shutter on weekdays at a certain time
+2. We will close it at sunrise.
+
+## Home Assistant Installation
+Of course we first have to install Home Assistant on the Raspberry Pi. 
+The Home Assistant documentation describes various ways for installing the software. 
+Since I want to use the Raspberry Pi for other things as well (like the flask server), 
+I chose to install the software as a docker container. A guide on how to do this is provided here
+<a href=https://www.home-assistant.io/installation/raspberrypi>home-assistant.io/installation/raspberrypi</a>
+
+## Home Assistant Configuration
+Now that we have a running Home Assistant deployment, we can configure it for controlling the shutter. 
+
+1. Add the following services to \`<path-to-homeassistant/config/configuration.yaml\`
+
+\`\`\`C
+rest_command:
+  open_full:
+          url: "http://localhost:8081/setShutterLevel"
+          method: "post"
+          content_type: "application/json"
+          payload: '{"level": 0.0}'
+  open_half:
+          url: "http://localhost:8081/setShutterLevel"
+          method: "post"
+          content_type: "application/json"
+          payload: '{"level": 0.5}'
+  close:
+          url: "http://localhost:8081/setShutterLevel"
+          method: "post"
+          content_type: "application/json"
+          payload: '{"level": 0.65}'
+binary_sensor:
+  - platform: workday
+    country: DE
+    workdays: [mon, tue, wed, thu, fri]
+    excludes: [sat, sun]
+\`\`\`
+
+2. Add the following scripts to \`<path-to-homeassistant/config/scripts.yaml\`
+
+\`\`\`C
+open_shutters_full:
+  alias: open shutters full
+  sequence:
+  - service: rest_command.open_full
+  mode: single
+  max: 10
+open_shutters_half:
+  alias: open shutters half
+  sequence:
+  - service: rest_command.open_half
+  mode: single
+  max: 10
+close_shutters:
+  alias: close shutters 
+  sequence:
+  - service: rest_command.close
+  mode: single
+  max: 10 
+
+\`\`\`
 
 
-https://www.hausautomatisierer.de/433-mhz-sniffer-mit-arduino-bauen
+2. Add the following automations to \`<path-to-homeassistant/config/automation.yaml\`
+
+\`\`\`C
+- id: '1615669286832'
+  alias: Open shutters half
+  description: ''
+  trigger:
+  - platform: time
+    at: "06:30:00"
+  condition:
+    condition: state
+    entity_id: binary_sensor.workday_sensor
+    state: "on"
+  action:
+  - service: script.open_shutters_half
+  mode: single
+- id: '1615669286852'
+  alias: Open shutters full
+  description: ''
+  trigger:
+  - platform: time
+    at: "07:45:00"
+  condition:
+    condition: state
+    entity_id: binary_sensor.workday_sensor
+    state: "on"
+  action:
+  - service: script.open_shutters_full
+  mode: single
+- id: '1615669378243'
+  alias: Close shutters
+  description: ''
+  trigger:
+  - platform: sun
+    event: sunset
+  condition: []
+  action:
+  - service: script.close_shutters
+  mode: single
+\`\`\`
+
+4. Now open the Home Assistant overview in the browser \`<ip-of-the-raspberry>:8123/lovelace/default_view\`
+5. In the three-dot menu on the top right, click "Edit Dashboard". 
+6. The click "+ Add Card" on the bottom right and choose "Manual" on the bottom of the list
+7. Paste the following yaml in the txt field 
+
+\`\`\`C
+type: entities
+entities:
+  - entity: automation.open_shutters_half
+    name: Open half in the morning
+    secondary_info: last-triggered
+  - entity: automation.open_shutters
+    name: Open full in the morning
+  - entity: automation.close_shutters
+    name: Close at sunset
+    secondary_info: last-triggered
+  - entity: script.open_shutters_half
+    name: Open half now
+  - entity: script.open_shutters_full
+    name: Open full now
+  - entity: script.close_shutters
+    name: Close now
+title: Rollladen
+\`\`\`
+
+This will provide the following card to you: 
+
+<img src="/assets/screenshot_ha_shutter_card.png" alt="drawing" width="500"/>
+
+By clicking enabling the switches you can turn on/off the various automations. 
+You can also execute the commands manually by clicking on "Run". 
+If you want to change the parameters, e.g. for the automation, you can do this easily by 
+editing the .yaml files. You may also  want to create your own automation.
+
+Congratulations, you have now finished the integration of the shutter controller. 
+
+06.05.21
 `
-  },
-  {
-    date: "01.01.2001",
-    title: "dummy",
-    content: `
-# h1 Dummy Article
-add some markdown
-        `
   },
 ]
